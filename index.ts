@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express, { Express, Request, Response } from "express";
 import { MongoClient, ObjectId } from "mongodb";
 import cors from "cors";
+import { callAgent } from './agent';
 
 const app: Express = express();
 app.use(cors());
@@ -19,6 +20,35 @@ async function startServer() {
     console.log("Successfully connected to MongoDB!");
 
     const db = client.db(dbName);
+
+    // Chat routes
+    app.get('/', (req: Request, res: Response) => {
+      res.send('RealmsAI Meme Analysis Server');
+    });
+
+    app.post('/chat', async (req: Request, res: Response) => {
+      const initialMessage = req.body.message;
+      const threadId = Date.now().toString();
+      try {
+        const response = await callAgent(client, initialMessage, threadId);
+        res.json({ threadId, response });
+      } catch (error) {
+        console.error('Error starting conversation:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    });
+
+    app.post('/chat/:threadId', async (req: Request, res: Response) => {
+      const { threadId } = req.params;
+      const { message } = req.body;
+      try {
+        const response = await callAgent(client, message, threadId);
+        res.json({ response });
+      } catch (error) {
+        console.error('Error in chat:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    });
 
     // Routes
 
