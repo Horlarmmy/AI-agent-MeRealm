@@ -168,6 +168,31 @@ async function startServer() {
       }
     });
 
+    // Vote on a Meme
+    app.post("/memes/:memeId/vote", async (req: Request, res: Response) => {
+      const { memeId } = req.params;
+      const { user } = req.body;
+
+      try {
+        const result = await db.collection(memesCollection).updateOne(
+          { _id: new ObjectId(memeId) },
+          {
+            $inc: { votes: 1 },
+            $addToSet: { voters: user }
+          }
+        );
+
+        if (result.modifiedCount === 0) {
+          return res.status(404).json({ error: "Meme not found or user already voted" });
+        }
+
+        res.status(200).json({ message: "Vote added successfully", result });
+      } catch (error) {
+        console.error("Error voting on meme:", error);
+        res.status(500).json({ error: "Internal server error" });
+      }
+    });
+
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
